@@ -1,0 +1,122 @@
+name: msrc-azpsversion-final-evidence
+
+on:
+  push:
+    paths:
+      - '.github/workflows/msrc-azpsversion-final-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  main_command_substitution:
+    name: main hosted runner command-substitution proof
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Pre-action guard marker must not exist
+        shell: pwsh
+        run: |
+          Write-Output "msrc_pre_action_guard_start"
+          Write-Output "msrc_pre_action_marker_exists=$(Test-Path ./msrc_azpsversion_pre_inline.txt)"
+      - name: Azure PowerShell action under test
+        uses: azure/powershell@v3
+        with:
+          azPSVersion: '15.6.1$(set-content -path ./msrc_azpsversion_pre_inline.txt -value payload_before_inline)'
+          inlineScript: |
+            Write-Output "msrc_inline_start"
+            if (Test-Path ./msrc_azpsversion_pre_inline.txt) {
+              Write-Output "msrc_pre_inline_marker_exists=true"
+              Get-Content ./msrc_azpsversion_pre_inline.txt
+            } else {
+              Write-Output "msrc_pre_inline_marker_exists=false"
+            }
+      - name: Read marker after action
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path ./msrc_azpsversion_pre_inline.txt) {
+            Write-Output "msrc_post_action_marker_exists=true"
+            Get-Content ./msrc_azpsversion_pre_inline.txt
+          } else {
+            Write-Output "msrc_post_action_marker_exists=false"
+          }
+
+  negative_exact:
+    name: negative control exact version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Pre-action guard marker must not exist
+        shell: pwsh
+        run: |
+          Write-Output "msrc_pre_action_guard_start"
+          Write-Output "msrc_pre_action_marker_exists=$(Test-Path ./msrc_azpsversion_pre_inline.txt)"
+      - name: Azure PowerShell action under test
+        uses: azure/powershell@v3
+        with:
+          azPSVersion: '15.6.1'
+          inlineScript: |
+            Write-Output "msrc_control_inline_start"
+            if (Test-Path ./msrc_azpsversion_pre_inline.txt) {
+              Write-Output "msrc_control_marker_exists=true"
+              Get-Content ./msrc_azpsversion_pre_inline.txt
+            } else {
+              Write-Output "msrc_control_marker_exists=false"
+            }
+
+  negative_latest:
+    name: negative control latest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Pre-action guard marker must not exist
+        shell: pwsh
+        run: |
+          Write-Output "msrc_pre_action_guard_start"
+          Write-Output "msrc_pre_action_marker_exists=$(Test-Path ./msrc_azpsversion_pre_inline.txt)"
+      - name: Azure PowerShell action under test
+        uses: azure/powershell@v3
+        with:
+          azPSVersion: 'latest'
+          inlineScript: |
+            Write-Output "msrc_control_inline_start"
+            if (Test-Path ./msrc_azpsversion_pre_inline.txt) {
+              Write-Output "msrc_control_marker_exists=true"
+              Get-Content ./msrc_azpsversion_pre_inline.txt
+            } else {
+              Write-Output "msrc_control_marker_exists=false"
+            }
+
+  semicolon:
+    name: semicolon statement-separator proof
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Pre-action guard marker must not exist
+        shell: pwsh
+        run: |
+          Write-Output "msrc_pre_action_guard_start"
+          Write-Output "msrc_pre_action_semicolon_marker_exists=$(Test-Path ./msrc_azpsversion_semicolon.txt)"
+      - name: Azure PowerShell action under test
+        continue-on-error: true
+        uses: azure/powershell@v3
+        with:
+          azPSVersion: '15.6.1 -name msrcnonexistentmoduleazps -erroraction silentlycontinue; set-content -path ./msrc_azpsversion_semicolon.txt -value semicolon_payload; #'
+          inlineScript: |
+            Write-Output "msrc_semicolon_inline_reached"
+      - name: Read semicolon marker
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path ./msrc_azpsversion_semicolon.txt) {
+            Write-Output "msrc_semicolon_marker_exists=true"
+            Get-Content ./msrc_azpsversion_semicolon.txt
+          } else {
+            Write-Output "msrc_semicolon_marker_exists=false"
+          }
